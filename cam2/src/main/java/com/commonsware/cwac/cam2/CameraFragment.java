@@ -57,7 +57,7 @@ public class CameraFragment extends Fragment {
   private CameraController ctlr;
   private ViewGroup previewStack;
   private FloatingActionButton fabPicture;
-  private FloatingActionButton fabSwitch;
+  private FloatingActionButton fabSwitchCamera;
   private View progress;
   private boolean isVideoRecording=false;
   private boolean mirrorPreview=false;
@@ -150,7 +150,7 @@ public class CameraFragment extends Fragment {
 
       if (fabPicture!=null) {
         fabPicture.setEnabled(true);
-        fabSwitch.setEnabled(true);
+        fabSwitchCamera.setEnabled(true);
       }
     }
   }
@@ -218,12 +218,12 @@ public class CameraFragment extends Fragment {
       }
     });
 
-    fabSwitch=(FloatingActionButton)v.findViewById(R.id.cwac_cam2_switch_camera);
-    fabSwitch.setOnClickListener(new View.OnClickListener() {
+    fabSwitchCamera=(FloatingActionButton)v.findViewById(R.id.cwac_cam2_switch_camera);
+    fabSwitchCamera.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
         progress.setVisibility(View.VISIBLE);
-        fabSwitch.setEnabled(false);
+        fabSwitchCamera.setEnabled(false);
 
         try {
           ctlr.switchCamera();
@@ -241,7 +241,7 @@ public class CameraFragment extends Fragment {
                             // called on initial display
     
     fabPicture.setEnabled(false);
-    fabSwitch.setEnabled(false);
+    fabSwitchCamera.setEnabled(false);
 
     if (ctlr!=null && ctlr.getNumberOfCameras()>0) {
       prepController();
@@ -305,7 +305,7 @@ public class CameraFragment extends Fragment {
 
     if (event.exception==null) {
       progress.setVisibility(View.GONE);
-      fabSwitch.setEnabled(true);
+      fabSwitchCamera.setEnabled(true);
       fabPicture.setEnabled(true);
       zoomSlider=(SeekBar)getView().findViewById(R.id.cwac_cam2_zoom);
 
@@ -391,7 +391,7 @@ public class CameraFragment extends Fragment {
     }
 
     fabPicture.setEnabled(false);
-    fabSwitch.setEnabled(false);
+    fabSwitchCamera.setEnabled(false);
     ctlr.takePicture(b.build());
   }
 
