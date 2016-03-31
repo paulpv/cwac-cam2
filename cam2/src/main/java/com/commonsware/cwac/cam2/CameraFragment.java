@@ -229,6 +229,7 @@ public class CameraFragment extends Fragment {
           ctlr.switchCamera();
         }
         catch (Exception e) {
+          progress.setVisibility(View.GONE);
           Log.e(getClass().getSimpleName(), "Exception switching camera", e);
         }
       }
