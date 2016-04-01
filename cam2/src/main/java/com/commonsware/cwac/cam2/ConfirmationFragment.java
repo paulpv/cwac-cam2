@@ -64,13 +64,15 @@ public class ConfirmationFragment extends Fragment {
 
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-    iv=new ImageView(getActivity());
+    View view = inflater.inflate(R.layout.cwac_cam2_confirmation, container, false);
+
+    iv= (ImageView) view.findViewById(R.id.cwac_cam2_preview);
 
     if (imageContext!=null) {
       loadImage();
     }
 
-    return(iv);
+    return view;
   }
 
   @Override
