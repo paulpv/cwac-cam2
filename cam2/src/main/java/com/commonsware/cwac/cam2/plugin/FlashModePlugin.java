@@ -95,6 +95,10 @@ public class FlashModePlugin implements CameraPlugin {
       if (session.getCurrentFlashMode()!=null) {
         captureBuilder.set(CaptureRequest.CONTROL_AE_MODE,
           session.getCurrentFlashMode().getCameraTwoMode());
+        captureBuilder.set(CaptureRequest.FLASH_MODE,
+          session.getCurrentFlashMode().isTorchMode() ?
+            CameraMetadata.FLASH_MODE_TORCH :
+            CameraMetadata.FLASH_MODE_OFF);
       }
     }
 
@@ -105,6 +109,10 @@ public class FlashModePlugin implements CameraPlugin {
       if (session.getCurrentFlashMode()!=null) {
         captureBuilder.set(CaptureRequest.CONTROL_AE_MODE,
           session.getCurrentFlashMode().getCameraTwoMode());
+        captureBuilder.set(CaptureRequest.FLASH_MODE,
+          session.getCurrentFlashMode().isTorchMode() ?
+            CameraMetadata.FLASH_MODE_TORCH :
+            CameraMetadata.FLASH_MODE_OFF);
       }
     }
   }

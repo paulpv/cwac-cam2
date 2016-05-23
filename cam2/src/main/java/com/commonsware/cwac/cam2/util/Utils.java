@@ -111,6 +111,26 @@ public class Utils {
     return(result);
   }
 
+  public static Size getSmallestPictureSize(CameraDescriptor descriptor) {
+    Size result=null;
+
+    for (Size size : descriptor.getPictureSizes()) {
+      if (result == null) {
+        result=size;
+      }
+      else {
+        int resultArea=result.getWidth() * result.getHeight();
+        int newArea=size.getWidth() * size.getHeight();
+
+        if (newArea < resultArea) {
+          result=size;
+        }
+      }
+    }
+
+    return(result);
+  }
+
   // based on https://github.com/googlesamples/android-Camera2Basic/blob/master/Application/src/main/java/com/example/android/camera2basic/Camera2BasicFragment.java
 
   /**

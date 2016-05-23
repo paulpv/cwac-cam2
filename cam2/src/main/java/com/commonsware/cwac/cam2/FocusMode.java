@@ -15,5 +15,5 @@
 package com.commonsware.cwac.cam2;
 
 public enum FocusMode {
-  CONTINUOUS, OFF, EDOF
+  CONTINUOUS, OFF, EDOF, MACRO
 }

@@ -18,6 +18,8 @@ import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.ResultReceiver;
 import android.view.View;
 import com.commonsware.cwac.cam2.plugin.FlashModePlugin;
 import com.commonsware.cwac.cam2.plugin.FocusModePlugin;
@@ -25,6 +27,8 @@ import com.commonsware.cwac.cam2.plugin.OrientationPlugin;
 import com.commonsware.cwac.cam2.plugin.SizeAndFormatPlugin;
 import com.commonsware.cwac.cam2.util.Size;
 import com.commonsware.cwac.cam2.util.Utils;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Queue;
@@ -49,10 +53,14 @@ public class CameraController implements CameraView.StateCallback {
   private final boolean isVideo;
   private FlashModePlugin flashModePlugin;
   private int zoomLevel=0;
+  private int quality=0;
+  private final ResultReceiver onError;
 
   public CameraController(FocusMode focusMode,
+                          ResultReceiver onError,
                           boolean allowChangeFlashMode,
                           boolean isVideo) {
+    this.onError=onError;
     this.focusMode=focusMode==null ?
       FocusMode.CONTINUOUS : focusMode;
     this.isVideo=isVideo;
@@ -220,6 +228,10 @@ public class CameraController implements CameraView.StateCallback {
     }
   }
 
+  public void setQuality(int quality) {
+    this.quality=quality;
+  }
+
   public boolean canToggleFlashMode() {
     return(allowChangeFlashMode &&
       engine.supportsDynamicFlashModes() &&
@@ -230,7 +242,7 @@ public class CameraController implements CameraView.StateCallback {
     return(session.getCurrentFlashMode());
   }
 
-  boolean supportsZoom() {
+  public boolean supportsZoom() {
     return(engine.supportsZoom(session));
   }
 
@@ -240,7 +252,7 @@ public class CameraController implements CameraView.StateCallback {
     return(handleZoom());
   }
 
-  boolean setZoom(int zoomLevel) {
+  public boolean setZoom(int zoomLevel) {
     this.zoomLevel=zoomLevel;
 
     return(handleZoom());
@@ -283,11 +295,18 @@ public class CameraController implements CameraView.StateCallback {
       Size previewSize=null;
       CameraDescriptor camera=cameras.get(currentCamera);
       CameraView cv=getPreview(camera);
-      Size largest=Utils.getLargestPictureSize(camera);
+      Size pictureSize;
+
+      if (quality>0) {
+        pictureSize=Utils.getLargestPictureSize(camera);
+      }
+      else {
+        pictureSize=Utils.getSmallestPictureSize(camera);
+      }
 
       if (camera != null && cv.getWidth() > 0 && cv.getHeight() > 0) {
         previewSize=Utils.chooseOptimalSize(camera.getPreviewSizes(),
-            cv.getWidth(), cv.getHeight(), largest);
+            cv.getWidth(), cv.getHeight(), pictureSize);
       }
 
       SurfaceTexture texture=cv.getSurfaceTexture();
@@ -303,7 +322,7 @@ public class CameraController implements CameraView.StateCallback {
         session=engine
             .buildSession(cv.getContext(), camera)
             .addPlugin(new SizeAndFormatPlugin(previewSize,
-              largest, ImageFormat.JPEG))
+              pictureSize, ImageFormat.JPEG))
             .addPlugin(new OrientationPlugin(cv.getContext()))
             .addPlugin(new FocusModePlugin(cv.getContext(), focusMode, isVideo))
             .addPlugin(flashModePlugin)
@@ -317,6 +336,10 @@ public class CameraController implements CameraView.StateCallback {
 
   @SuppressWarnings("unused")
   public void onEventMainThread(CameraEngine.CameraDescriptorsEvent event) {
+    if (event.exception!=null) {
+      postError(ErrorConstants.ERROR_LIST_CAMERAS, event.exception);
+    }
+
     if (event.descriptors.size()>0) {
       cameras=event.descriptors;
       EventBus.getDefault().post(new ControllerReadyEvent(this, cameras.size()));
@@ -328,33 +351,45 @@ public class CameraController implements CameraView.StateCallback {
 
   @SuppressWarnings("unused")
   public void onEventMainThread(CameraEngine.OpenedEvent event) {
-    CameraDescriptor camera=cameras.get(currentCamera);
-    CameraView cv=getPreview(camera);
-
-    boolean shouldSwapPreviewDimensions=
-      cv
-        .getContext()
-        .getResources()
-        .getConfiguration().orientation==
-        Configuration.ORIENTATION_PORTRAIT;
-    Size virtualPreviewSize=session.getPreviewSize();
-
-    if (shouldSwapPreviewDimensions) {
-      virtualPreviewSize=
-        new Size(session.getPreviewSize().getHeight(),
-          session.getPreviewSize().getWidth());
+    if (event.exception!=null) {
+      // handled at fragment level
     }
+    else {
+      CameraDescriptor camera=cameras.get(currentCamera);
+      CameraView cv=getPreview(camera);
 
-    cv.setPreviewSize(virtualPreviewSize);
+      boolean shouldSwapPreviewDimensions=
+        cv
+          .getContext()
+          .getResources()
+          .getConfiguration().orientation==
+          Configuration.ORIENTATION_PORTRAIT;
+      Size virtualPreviewSize=session.getPreviewSize();
+
+      if (shouldSwapPreviewDimensions) {
+        virtualPreviewSize=
+          new Size(session.getPreviewSize().getHeight(),
+            session.getPreviewSize().getWidth());
+      }
+
+      cv.setPreviewSize(virtualPreviewSize);
+    }
   }
 
   @SuppressWarnings("unused")
   public void onEventMainThread(CameraEngine.ClosedEvent event) {
-    if (switchPending) {
-      switchPending=false;
-      currentCamera=getNextCameraIndex();
-      getPreview(cameras.get(currentCamera)).setVisibility(View.VISIBLE);
-      open();
+    if (event.exception!=null) {
+      postError(ErrorConstants.ERROR_CLOSE_CAMERA, event.exception);
+      EventBus.getDefault().post(new NoSuchCameraEvent());
+    }
+    else {
+      if (switchPending) {
+        switchPending=false;
+        currentCamera=getNextCameraIndex();
+        getPreview(cameras.get(currentCamera))
+          .setVisibility(View.VISIBLE);
+        open();
+      }
     }
   }
 
@@ -362,6 +397,24 @@ public class CameraController implements CameraView.StateCallback {
   public void onEventMainThread(CameraEngine.OrientationChangedEvent event) {
     if (engine!=null) {
       engine.handleOrientationChange(session, event);
+    }
+  }
+
+  @SuppressWarnings("unused")
+  public void onEventMainThread(CameraEngine.DeepImpactEvent event) {
+    postError(ErrorConstants.ERROR_MISC, event.exception);
+  }
+
+  public void postError(int resultCode, Exception e) {
+    if (onError!=null) {
+      Bundle resultData=new Bundle();
+      StringWriter sw=new StringWriter();
+
+      e.printStackTrace(new PrintWriter(sw));
+      resultData
+        .putString(ErrorConstants.RESULT_STACK_TRACE,
+          sw.toString());
+      onError.send(resultCode, resultData);
     }
   }
 

@@ -101,7 +101,8 @@ public class PictureTransaction {
      * @return the Builder, for more API calls
      */
     public Builder toUri(Context ctxt, Uri output,
-                         boolean updateMediaStore) {
+                         boolean updateMediaStore,
+                         boolean skipOrientationNormalization) {
       JPEGWriter jpeg=(JPEGWriter)result.findProcessorByTag(JPEGWriter.class.getCanonicalName());
 
       if (jpeg == null) {
@@ -115,6 +116,10 @@ public class PictureTransaction {
           .getProperties()
           .putBoolean(JPEGWriter.PROP_UPDATE_MEDIA_STORE,
               updateMediaStore);
+      result
+        .getProperties()
+        .putBoolean(JPEGWriter.PROP_SKIP_ORIENTATION_NORMALIZATION,
+          skipOrientationNormalization);
 
       return (this);
     }

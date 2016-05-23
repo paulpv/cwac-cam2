@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.commonsware.cwac:cam2:0.5.+'
+    compile 'com.commonsware.cwac:cam2:0.5.11'
 }
 ```
 
@@ -110,14 +110,15 @@ use of it, from being obfuscated.
 
 Version
 -------
-This is version v0.5.3 of this library, which means it is coming
+This is version v0.5.11 of this library, which means it is coming
 along slowly.
 
 Demo
 ----
 There are two demo projects.
 
-One is `demo/`. This illustrates taking pictures using the front
+One is `demo/`. This illustrates taking pictures or recording
+videos using the front
 and rear-facing cameras. More importantly, it serves as a way of
 collecting information about a device, particularly if you are
 going to [file a bug report](CONTRIBUTING.md).
@@ -161,6 +162,13 @@ Do not ask for help via social media.
 
 Release Notes
 -------------
+- v0.5.11: [LG V10 H901](https://github.com/commonsguy/cwac-cam2/issues/141) bug fix
+- v0.5.10: [LG G4](https://github.com/commonsguy/cwac-cam2/issues/195), [activity re-creation](https://github.com/commonsguy/cwac-cam2/issues/193) bugs fixed, plus [more graceful failure for a `camera2` issue](https://github.com/commonsguy/cwac-cam2/issues/192)  
+- v0.5.9: [handle config changes/process termination better](https://github.com/commonsguy/cwac-cam2/issues/190)
+- v0.5.8: better OOM handling, added `ResultReceiver` support for getting details of errors, bug fix in `confirmationQuality`
+- v0.5.7: improved [OnePlus X compatibility](https://github.com/commonsguy/cwac-cam2/issues/175), allow [configurable confirmation quality](https://github.com/commonsguy/cwac-cam2/issues/180), [block camera-change FAB in exact-match scenario](https://github.com/commonsguy/cwac-cam2/issues/182) 
+- v0.5.6: added quality control to still photos, added video recording to `demo/`
+- v0.5.5: fixed [LG G3 video bug](https://github.com/commonsguy/cwac-cam2/issues/168) and [disable camera changes during video recording](https://github.com/commonsguy/cwac-cam2/issues/172)
 - v0.5.4: fixed [two](https://github.com/commonsguy/cwac-cam2/issues/155) video [recording](https://github.com/commonsguy/cwac-cam2/issues/159) bugs
 - v0.5.3: reverts [inadequate shutdown](https://github.com/commonsguy/cwac-cam2/issues/155) change from v0.5.2 due to bugs
 - v0.5.2: fixed [zoom](https://github.com/commonsguy/cwac-cam2/issues/149), [inadequate shutdown](https://github.com/commonsguy/cwac-cam2/issues/155), and [dual engines](https://github.com/commonsguy/cwac-cam2/issues/156) issues

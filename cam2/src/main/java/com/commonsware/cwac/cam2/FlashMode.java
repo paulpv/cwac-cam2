@@ -20,6 +20,8 @@ import android.hardware.camera2.CameraCharacteristics;
 public enum FlashMode {
   OFF(Camera.Parameters.FLASH_MODE_OFF,
     CameraCharacteristics.CONTROL_AE_MODE_ON),
+  TORCH(Camera.Parameters.FLASH_MODE_TORCH,
+    CameraCharacteristics.CONTROL_AE_MODE_ON),
   ALWAYS(Camera.Parameters.FLASH_MODE_ON,
     CameraCharacteristics.CONTROL_AE_MODE_ON_ALWAYS_FLASH),
   AUTO(Camera.Parameters.FLASH_MODE_AUTO,
@@ -75,5 +77,9 @@ public enum FlashMode {
 
   public int getCameraTwoMode() {
     return(cameraTwoMode);
+  }
+
+  public boolean isTorchMode() {
+    return(Camera.Parameters.FLASH_MODE_TORCH.equals(classicMode));
   }
 }

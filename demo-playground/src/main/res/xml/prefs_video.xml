@@ -13,9 +13,11 @@
   <SwitchPreference
     android:key="debug"
     android:title="@string/title_debug"/>
+<!--
   <SwitchPreference
     android:key="forceClassic"
-    android:title="@string/title_force_classic"/>
+    android:title="@string/title_force_engine"/>
+-->
   <SwitchPreference
     android:key="highQuality"
     android:title="@string/title_quality"/>

@@ -114,6 +114,10 @@ public class FocusModePlugin implements CameraPlugin {
           FocusMode.EDOF) {
           desiredMode=Camera.Parameters.FOCUS_MODE_EDOF;
         }
+        else if (focusMode==
+          FocusMode.MACRO) {
+          desiredMode=Camera.Parameters.FOCUS_MODE_MACRO;
+        }
         else if (isVideo) {
           desiredMode=
             Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO;
@@ -181,6 +185,9 @@ public class FocusModePlugin implements CameraPlugin {
       }
       else if (focusMode==FocusMode.EDOF) {
         desiredMode=CameraMetadata.CONTROL_AF_MODE_EDOF;
+      }
+      else if (focusMode==FocusMode.MACRO) {
+        desiredMode=CameraMetadata.CONTROL_AF_MODE_MACRO;
       }
       else if (isVideo) {
         desiredMode=CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO;

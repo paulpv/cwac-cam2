@@ -28,23 +28,27 @@
     <item>Continuous</item>
     <item>Off</item>
     <item>Extended depth-of-field</item>
+    <item>Macro</item>
   </string-array>
   <string-array name="focusModeValues">
     <item>0</item>
     <item>1</item>
     <item>2</item>
+    <item>3</item>
   </string-array>
   <string-array name="flashModes">
     <item>Off</item>
     <item>Always On</item>
     <item>Auto</item>
     <item>Redeye-Reduction Mode</item>
+    <item>Torch</item>
   </string-array>
   <string-array name="flashModeValues">
     <item>0</item>
     <item>1</item>
     <item>2</item>
     <item>3</item>
+    <item>4</item>
   </string-array>
   <string-array name="zoomStyles">
     <item>None</item>
@@ -52,6 +56,23 @@
     <item>Slider</item>
   </string-array>
   <string-array name="zoomStyleValues">
+    <item>0</item>
+    <item>1</item>
+    <item>2</item>
+  </string-array>
+  <string-array name="confirmationQuality">
+    <item>Default</item>
+    <item>0.01</item>
+    <item>0.1</item>
+    <item>0.5</item>
+    <item>1.0</item>
+  </string-array>
+  <string-array name="engines">
+    <item>Default</item>
+    <item>Classic</item>
+    <item>Camera2</item>
+  </string-array>
+  <string-array name="engineValues">
     <item>0</item>
     <item>1</item>
     <item>2</item>

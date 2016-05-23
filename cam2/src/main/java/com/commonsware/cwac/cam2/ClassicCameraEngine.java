@@ -303,10 +303,11 @@ public class ClassicCameraEngine extends CameraEngine
     Descriptor descriptor=(Descriptor)session.getDescriptor();
     Camera camera=descriptor.getCamera();
 
-    if (camera!=null) {
+    if (camera!=null && recorder!=null) {
       MediaRecorder tempRecorder=recorder;
 
       recorder=null;
+
       tempRecorder.stop();
       tempRecorder.release();
 

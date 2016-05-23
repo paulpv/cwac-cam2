@@ -62,7 +62,8 @@ public class VideoRecorderActivity extends AbstractCameraActivity {
         getIntent().getBooleanExtra(EXTRA_UPDATE_MEDIA_STORE, false),
         getIntent().getIntExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1),
         getIntent().getIntExtra(MediaStore.EXTRA_SIZE_LIMIT, 0),
-        getIntent().getIntExtra(MediaStore.EXTRA_DURATION_LIMIT, 0)));
+        getIntent().getIntExtra(MediaStore.EXTRA_DURATION_LIMIT, 0),
+        getIntent().getBooleanExtra(EXTRA_FACING_EXACT_MATCH, false)));
   }
 
   @SuppressWarnings("unused")
@@ -108,7 +109,7 @@ public class VideoRecorderActivity extends AbstractCameraActivity {
 
     @Override
     public Intent build() {
-      forceClassic();
+      forceEngine(CameraEngine.ID.CLASSIC);
 
       return(super.build());
     }
@@ -120,20 +121,6 @@ public class VideoRecorderActivity extends AbstractCameraActivity {
       }
 
       return(super.to(output));
-    }
-
-    /**
-     * Indicates the video quality to use for recording this
-     * video. Matches EXTRA_VIDEO_QUALITY, except uses an enum
-     * for type safety.
-     *
-     * @param q LOW or HIGH
-     * @return the builder, for further configuration
-     */
-    public IntentBuilder quality(Quality q) {
-      result.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, q.getValue());
-
-      return(this);
     }
 
     /**
@@ -163,17 +150,4 @@ public class VideoRecorderActivity extends AbstractCameraActivity {
     }
   }
 
-  public enum Quality {
-    LOW(0), HIGH(1);
-
-    private final int value;
-
-    private Quality(int value) {
-      this.value=value;
-    }
-
-    int getValue() {
-      return(value);
-    }
-  }
 }

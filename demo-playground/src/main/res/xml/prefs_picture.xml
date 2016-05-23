@@ -24,12 +24,20 @@
   <SwitchPreference
     android:key="debugSavePreview"
     android:title="@string/title_save_preview"/>
+  <ListPreference
+    android:key="forceEngine"
+    android:title="@string/title_force_engine"
+    android:entries="@array/engines"
+    android:entryValues="@array/engineValues"/>
   <SwitchPreference
-    android:key="forceClassic"
-    android:title="@string/title_force_classic"/>
+    android:key="highQuality"
+    android:title="@string/title_quality"/>
   <SwitchPreference
     android:key="mirrorPreview"
     android:title="@string/title_mirror_preview"/>
+  <SwitchPreference
+    android:key="skipOrientationNormalization"
+    android:title="@string/title_skip_orient_normal"/>
   <ListPreference
     android:key="focusMode"
     android:entries="@array/focusModes"
@@ -45,6 +53,11 @@
     android:title="@string/title_zoom_style"
     android:entries="@array/zoomStyles"
     android:entryValues="@array/zoomStyleValues"/>
+  <ListPreference
+    android:key="confirmationQuality"
+    android:title="@string/title_confirmation_quality"
+    android:entries="@array/confirmationQuality"
+    android:entryValues="@array/confirmationQuality"/>
 <!--
   <SwitchPreference
     android:key="allowSwitchFlashMode"

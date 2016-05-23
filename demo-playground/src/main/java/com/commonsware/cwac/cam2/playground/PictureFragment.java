@@ -14,16 +14,23 @@
 
 package com.commonsware.cwac.cam2.playground;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.ResultReceiver;
 import android.preference.PreferenceFragment;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.Toast;
+import com.commonsware.cwac.cam2.AbstractCameraActivity;
 import com.commonsware.cwac.cam2.CameraActivity;
+import com.commonsware.cwac.cam2.CameraEngine;
 import com.commonsware.cwac.cam2.Facing;
 import com.commonsware.cwac.cam2.FlashMode;
 import com.commonsware.cwac.cam2.FocusMode;
@@ -101,8 +108,16 @@ public class PictureFragment extends PreferenceFragment {
       b.updateMediaStore();
     }
 
-    if (prefs.getBoolean("forceClassic", false)) {
-      b.forceClassic();
+    int rawEngine=
+      Integer.valueOf(prefs.getString("forceEngine", "0"));
+
+    switch (rawEngine) {
+      case 1:
+        b.forceEngine(CameraEngine.ID.CLASSIC);
+        break;
+      case 2:
+        b.forceEngine(CameraEngine.ID.CAMERA2);
+        break;
     }
 
     if (prefs.getBoolean("file", false)) {
@@ -115,6 +130,13 @@ public class PictureFragment extends PreferenceFragment {
 
     if (prefs.getBoolean("mirrorPreview", false)) {
       b.mirrorPreview();
+    }
+
+    if (prefs.getBoolean("highQuality", false)) {
+      b.quality(AbstractCameraActivity.Quality.HIGH);
+    }
+    else {
+      b.quality(AbstractCameraActivity.Quality.LOW);
     }
 
     int rawFocusMode=
@@ -130,10 +152,17 @@ public class PictureFragment extends PreferenceFragment {
       case 2:
         b.focusMode(FocusMode.EDOF);
         break;
+      case 3:
+        b.focusMode(FocusMode.MACRO);
+        break;
     }
 
     if (prefs.getBoolean("debugSavePreview", false)) {
       b.debugSavePreviewFrame();
+    }
+
+    if (prefs.getBoolean("skipOrientationNormalization", false)) {
+      b.skipOrientationNormalization();
     }
 
     int rawFlashMode=
@@ -151,6 +180,9 @@ public class PictureFragment extends PreferenceFragment {
         break;
       case 3:
         b.flashMode(FlashMode.REDEYE);
+        break;
+      case 4:
+        b.flashMode(FlashMode.TORCH);
         break;
     }
 
@@ -171,6 +203,15 @@ public class PictureFragment extends PreferenceFragment {
         break;
     }
 
+    String confirmationQuality=prefs.getString("confirmationQuality", null);
+
+    if (confirmationQuality!=null &&
+      !"Default".equals(confirmationQuality)) {
+      b.confirmationQuality(Float.parseFloat(confirmationQuality));
+    }
+
+    b.onError(new ErrorResultReceiver());
+
     Intent result;
 
     if (prefs.getBoolean("useChooser", false)) {
@@ -181,5 +222,25 @@ public class PictureFragment extends PreferenceFragment {
     }
 
     ((Contract)getActivity()).takePicture(result);
+  }
+
+  @SuppressLint("ParcelCreator")
+  private class ErrorResultReceiver extends ResultReceiver {
+    public ErrorResultReceiver() {
+      super(new Handler(Looper.getMainLooper()));
+    }
+
+    @Override
+    protected void onReceiveResult(int resultCode,
+                                   Bundle resultData) {
+      super.onReceiveResult(resultCode, resultData);
+
+      if (getActivity()!=null) {
+        Toast
+          .makeText(getActivity(), "We had an error",
+            Toast.LENGTH_LONG)
+          .show();
+      }
+    }
   }
 }

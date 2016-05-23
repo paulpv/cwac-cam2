@@ -15,11 +15,19 @@
 package com.commonsware.cwac.cam2;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
+import com.android.mms.exif.ExifInterface;
+import com.android.mms.exif.ExifTag;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
+import de.greenrobot.event.EventBus;
 
 /**
  * ImageProcessor that writes a JPEG file out to some form
@@ -41,6 +49,14 @@ public class JPEGWriter extends AbstractImageProcessor {
    * Only relevant if PROP_OUTPUT has a file scheme.
    */
   public static final String PROP_UPDATE_MEDIA_STORE="update";
+
+  /**
+   * Property key for boolean indicating if we should skip the
+   * default logic to rotate the image based on the EXIF orientation
+   * tag. Defaults to false (meaning: do the rotation if needed).
+   */
+  public static final String PROP_SKIP_ORIENTATION_NORMALIZATION
+    ="skipOrientationNormalization";
 
   /**
    * {@inheritDoc}
@@ -65,6 +81,9 @@ public class JPEGWriter extends AbstractImageProcessor {
     boolean updateMediaStore=xact
         .getProperties()
         .getBoolean(PROP_UPDATE_MEDIA_STORE, false);
+    byte[] jpeg=imageContext.getJpeg(!xact
+      .getProperties()
+      .getBoolean(PROP_SKIP_ORIENTATION_NORMALIZATION, false));
 
     if (output!=null) {
       try {
@@ -76,7 +95,7 @@ public class JPEGWriter extends AbstractImageProcessor {
 
           FileOutputStream fos=new FileOutputStream(f);
 
-          fos.write(imageContext.getJpeg());
+          fos.write(jpeg);
           fos.flush();
           fos.getFD().sync();
           fos.close();
@@ -90,13 +109,14 @@ public class JPEGWriter extends AbstractImageProcessor {
         else {
           OutputStream out=getContext().getContentResolver().openOutputStream(output);
 
-          out.write(imageContext.getJpeg());
+          out.write(jpeg);
           out.flush();
           out.close();
         }
       }
       catch (Exception e) {
-        throw new UnsupportedOperationException("Exception when trying to write JPEG", e);
+        // throw new UnsupportedOperationException("Exception when trying to write JPEG", e);
+        EventBus.getDefault().post(new CameraEngine.DeepImpactEvent(e));
       }
     }
   }

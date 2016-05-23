@@ -24,6 +24,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ResultReceiver;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -63,6 +64,73 @@ abstract public class AbstractCameraActivity extends Activity {
     "cwac_cam2_allow_switch_flash_mode";
 
   /**
+   * A ResultReceiver to be invoked on any error that the library
+   * cannot handle internally.
+   */
+  public static final String EXTRA_UNHANDLED_ERROR_RECEIVER=
+    "cwac_cam2_unhandled_error_receiver";
+
+  /**
+   * Extra name for indicating what facing rule for the
+   * camera you wish to use. The value should be a
+   * CameraSelectionCriteria.Facing instance.
+   */
+  public static final String EXTRA_FACING="cwac_cam2_facing";
+
+  /**
+   * Extra name for indicating that the requested facing
+   * must be an exact match, without gracefully degrading to
+   * whatever camera happens to be available. If set to true,
+   * requests to take a picture, for which the desired camera
+   * is not available, will be cancelled. Defaults to false.
+   */
+  public static final String EXTRA_FACING_EXACT_MATCH=
+    "cwac_cam2_facing_exact_match";
+
+  /**
+   * Extra name for indicating whether extra diagnostic
+   * information should be reported, particularly for errors.
+   * Default is false.
+   */
+  public static final String EXTRA_DEBUG_ENABLED="cwac_cam2_debug";
+
+  /**
+   * Extra name for indicating if MediaStore should be updated
+   * to reflect a newly-taken picture. Only relevant if
+   * a file:// Uri is used. Default to false.
+   */
+  public static final String EXTRA_UPDATE_MEDIA_STORE=
+      "cwac_cam2_update_media_store";
+
+  /**
+   * DO NOT USE. Use EXTRA_FORCE_ENGINE instead, please.
+   */
+  @Deprecated
+  public static final String EXTRA_FORCE_CLASSIC="cwac_cam2_force_classic";
+
+  /**
+   * If set to a CameraEngine.ID value (CLASSIC or CAMERA2), will
+   * force the use of that engine. If left null/unset, the default
+   * is based on what device we are running on.
+   */
+  public static final String EXTRA_FORCE_ENGINE="cwac_cam2_force_engine";
+
+  /**
+   * If set to true, horizontally flips or mirrors the preview.
+   * Does not change the picture or video output. Used mostly for FFC,
+   * though will be honored for any camera. Defaults to false.
+   */
+  public static final String EXTRA_MIRROR_PREVIEW="cwac_cam2_mirror_preview";
+
+  /**
+   * Extra name for focus mode to apply. Value should be one of the
+   * AbstractCameraActivity.FocusMode enum values. Default is CONTINUOUS.
+   * If the desired focus mode is not available, the device default
+   * focus mode is used.
+   */
+  public static final String EXTRA_FOCUS_MODE="cwac_cam2_focus_mode";
+
+  /**
    * @return true if the activity wants FEATURE_ACTION_BAR_OVERLAY,
    * false otherwise
    */
@@ -98,60 +166,6 @@ abstract public class AbstractCameraActivity extends Activity {
    * @param engine the CameraEngine to configure
    */
   abstract protected void configEngine(CameraEngine engine);
-
-  /**
-   * Extra name for indicating what facing rule for the
-   * camera you wish to use. The value should be a
-   * CameraSelectionCriteria.Facing instance.
-   */
-  public static final String EXTRA_FACING="cwac_cam2_facing";
-
-  /**
-   * Extra name for indicating that the requested facing
-   * must be an exact match, without gracefully degrading to
-   * whatever camera happens to be available. If set to true,
-   * requests to take a picture, for which the desired camera
-   * is not available, will be cancelled. Defaults to false.
-   */
-  public static final String EXTRA_FACING_EXACT_MATCH=
-    "cwac_cam2_facing_exact_match";
-
-  /**
-   * Extra name for indicating whether extra diagnostic
-   * information should be reported, particularly for errors.
-   * Default is false.
-   */
-  public static final String EXTRA_DEBUG_ENABLED="cwac_cam2_debug";
-
-  /**
-   * Extra name for indicating if MediaStore should be updated
-   * to reflect a newly-taken picture. Only relevant if
-   * a file:// Uri is used. Default to false.
-   */
-  public static final String EXTRA_UPDATE_MEDIA_STORE=
-      "cwac_cam2_update_media_store";
-
-  /**
-   * If set to true, forces the use of the ClassicCameraEngine
-   * on Android 5.0+ devices. Has no net effect on Android 4.x
-   * devices. Defaults to false.
-   */
-  public static final String EXTRA_FORCE_CLASSIC="cwac_cam2_force_classic";
-
-  /**
-   * If set to true, horizontally flips or mirrors the preview.
-   * Does not change the picture or video output. Used mostly for FFC,
-   * though will be honored for any camera. Defaults to false.
-   */
-  public static final String EXTRA_MIRROR_PREVIEW="cwac_cam2_mirror_preview";
-
-  /**
-   * Extra name for focus mode to apply. Value should be one of the
-   * AbstractCameraActivity.FocusMode enum values. Default is CONTINUOUS.
-   * If the desired focus mode is not available, the device default
-   * focus mode is used.
-   */
-  public static final String EXTRA_FOCUS_MODE="cwac_cam2_focus_mode";
 
   protected static final String TAG_CAMERA=CameraFragment.class.getCanonicalName();
   private static final int REQUEST_PERMS=13401;
@@ -287,6 +301,11 @@ abstract public class AbstractCameraActivity extends Activity {
     finish();
   }
 
+  @SuppressWarnings("unused")
+  public void onEventMainThread(CameraEngine.DeepImpactEvent event) {
+    finish();
+  }
+
   protected Uri getOutputUri() {
     Uri output=null;
 
@@ -308,55 +327,60 @@ abstract public class AbstractCameraActivity extends Activity {
   protected void init() {
     cameraFrag=(CameraFragment)getFragmentManager().findFragmentByTag(TAG_CAMERA);
 
+    boolean fragNeedsToBeAdded=false;
+
     if (cameraFrag==null) {
       cameraFrag=buildFragment();
+      fragNeedsToBeAdded=true;
+    }
 
-      FocusMode focusMode=
-        (FocusMode)getIntent().getSerializableExtra(EXTRA_FOCUS_MODE);
-      boolean allowChangeFlashMode=
-        getIntent().getBooleanExtra(EXTRA_ALLOW_SWITCH_FLASH_MODE, false);
+    FocusMode focusMode=
+      (FocusMode)getIntent().getSerializableExtra(EXTRA_FOCUS_MODE);
+    boolean allowChangeFlashMode=
+      getIntent().getBooleanExtra(EXTRA_ALLOW_SWITCH_FLASH_MODE, false);
+    ResultReceiver onError=
+      getIntent().getParcelableExtra(EXTRA_UNHANDLED_ERROR_RECEIVER);
 
-      CameraController ctrl=
-        new CameraController(focusMode, allowChangeFlashMode,
-          isVideo());
+    CameraController ctrl=
+      new CameraController(focusMode, onError,
+        allowChangeFlashMode, isVideo());
 
-      cameraFrag.setController(ctrl);
-      cameraFrag
-        .setMirrorPreview(getIntent()
-          .getBooleanExtra(EXTRA_MIRROR_PREVIEW, false));
+    cameraFrag.setController(ctrl);
+    cameraFrag
+      .setMirrorPreview(getIntent()
+        .getBooleanExtra(EXTRA_MIRROR_PREVIEW, false));
 
-      Facing facing=
-        (Facing)getIntent().getSerializableExtra(EXTRA_FACING);
+    Facing facing=
+      (Facing)getIntent().getSerializableExtra(EXTRA_FACING);
 
-      if (facing==null) {
-        facing=Facing.BACK;
-      }
+    if (facing==null) {
+      facing=Facing.BACK;
+    }
 
-      boolean match=getIntent()
-        .getBooleanExtra(EXTRA_FACING_EXACT_MATCH, false);
-      CameraSelectionCriteria criteria=
-        new CameraSelectionCriteria.Builder()
-          .facing(facing)
-          .facingExactMatch(match)
-          .build();
-      boolean forceClassic=
-        getIntent().getBooleanExtra(EXTRA_FORCE_CLASSIC, false);
+    boolean match=getIntent()
+      .getBooleanExtra(EXTRA_FACING_EXACT_MATCH, false);
+    CameraSelectionCriteria criteria=
+      new CameraSelectionCriteria.Builder()
+        .facing(facing)
+        .facingExactMatch(match)
+        .build();
+    CameraEngine.ID forcedEngineId=
+      (CameraEngine.ID)getIntent().getSerializableExtra(EXTRA_FORCE_ENGINE);
 
-      if ("samsung".equals(Build.MANUFACTURER) &&
-          ("ha3gub".equals(Build.PRODUCT) ||
-          "k3gxx".equals(Build.PRODUCT))) {
-        forceClassic=true;
-      }
+    ctrl.setEngine(CameraEngine.buildInstance(this, forcedEngineId), criteria);
+    ctrl.getEngine().setDebug(getIntent().getBooleanExtra(EXTRA_DEBUG_ENABLED, false));
+    configEngine(ctrl.getEngine());
 
-      ctrl.setEngine(CameraEngine.buildInstance(this, forceClassic), criteria);
-      ctrl.getEngine().setDebug(getIntent().getBooleanExtra(EXTRA_DEBUG_ENABLED, false));
-      configEngine(ctrl.getEngine());
-
+    if (fragNeedsToBeAdded) {
       getFragmentManager()
         .beginTransaction()
         .add(android.R.id.content, cameraFrag, TAG_CAMERA)
         .commit();
     }
+  }
+
+  boolean canSwitchSources() {
+    return(!getIntent().getBooleanExtra(EXTRA_FACING_EXACT_MATCH, false));
   }
 
   @TargetApi(23)
@@ -382,6 +406,20 @@ abstract public class AbstractCameraActivity extends Activity {
     }
 
     return(result.toArray(new String[result.size()]));
+  }
+
+  public enum Quality {
+    LOW(0), HIGH(1);
+
+    private final int value;
+
+    private Quality(int value) {
+      this.value=value;
+    }
+
+    int getValue() {
+      return(value);
+    }
   }
 
   abstract public static class IntentBuilder<T extends IntentBuilder> {
@@ -518,14 +556,22 @@ abstract public class AbstractCameraActivity extends Activity {
     }
 
     /**
-     * Forces the use of ClassicCameraEngine on Android 5.0+ devices.
+     * Forces the use of a specific engine based on its ID. Default
+     * is an engine chosen by the device we are running on.
+     *
+     * @param engineId CLASSIC or CAMERA2
      *
      * @return the builder, for further configuration
      */
-    public T forceClassic() {
-      result.putExtra(EXTRA_FORCE_CLASSIC, true);
+    public T forceEngine(CameraEngine.ID engineId) {
+      result.putExtra(EXTRA_FORCE_ENGINE, engineId);
 
       return((T)this);
+    }
+
+    @Deprecated
+    public T forceClassic() {
+      return(forceEngine(CameraEngine.ID.CLASSIC));
     }
 
     /**
@@ -599,6 +645,34 @@ abstract public class AbstractCameraActivity extends Activity {
      */
     public T allowSwitchFlashMode() {
       result.putExtra(EXTRA_ALLOW_SWITCH_FLASH_MODE, true);
+
+      return((T)this);
+    }
+
+    /**
+     * Indicates the video quality to use for recording this
+     * video. Matches EXTRA_VIDEO_QUALITY, except uses an enum
+     * for type safety. Note that this is also used for still
+     * image quality, despite the name of the extra.
+     *
+     * @param q LOW or HIGH
+     * @return the builder, for further configuration
+     */
+    public T quality(Quality q) {
+      result.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, q.getValue());
+
+      return((T)this);
+    }
+
+    /**
+     * Provides a ResultReceiver, which will be invoked on any
+     * error that the library cannot handle itself.
+     *
+     * @param rr a ResultReceiver to get error information
+     * @return the builder, for further configuration
+     */
+    public T onError(ResultReceiver rr) {
+      result.putExtra(EXTRA_UNHANDLED_ERROR_RECEIVER, rr);
 
       return((T)this);
     }

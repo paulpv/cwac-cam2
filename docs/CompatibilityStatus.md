@@ -20,9 +20,13 @@
 | HTC One S                      | `HTC`/`tmous`               | 4.1.1   | [35](https://github.com/commonsguy/cwac-cam2/issues/35) |
 | Huawei Honor 5X                | `HUAWEI`/`KIW-L24`          | 5.1.1   | |
 | LG G2                          | `LGE`/`g2_open_com`         | 4.4.2   | |
+| LG G3                          | `LGE`/`g3_tmo_us`           | 5.0.1   | |
+| LG G4                          | `LGE`/`p1_usc_us`           | 6.0     | |
 | LG G-Pad                       | `LGE`/`palman`              | 5.1     | |
+| LG V10 H901                    | `LGE`/`pplus_tmo_us`        | 5.1.1   | |
 | Motorola Moto E XT1022         | `motorola`/`condor_retla_ds`| 4.4.4   | |
 | NVIDIA Shield K1               | `NVIDIA`/`sb_na_wf`         | 6.0     | |
+| OnePlus X (E1005)              | `OnePlus`/`MODEL`=`ONE E1005` | 5.1.1 | |
 | Samsung Galaxy Ace 3           | `samsung`/`loganub`         | 4.2.2   | |
 | Samsung Galaxy Camera EK-GC110 | `samsung`/`gd1wifiue`       | 4.1.2   | |
 | Samsung Galaxy Camera EK-GC200 | `samsung`/`sf2wifixx`       | 4.3     | |
@@ -39,6 +43,8 @@
 | Samsung Galaxy S4              | `samsung`/`jflteuc`         | 4.2.2   | [149](https://github.com/commonsguy/cwac-cam2/issues/149) |
 | Samsung Galaxy S4 Zoom         | `samsung`/`mprojectlteuc`   | 4.2.2   | [146](https://github.com/commonsguy/cwac-cam2/issues/146) [149](https://github.com/commonsguy/cwac-cam2/issues/149) |
 | Samsung Galaxy S5              | `samsung`/`k3gxx`           | 5.0     | |
+| Samsung Galaxy S6 (G920F)      | `samsung`/`zerofltexx`      | 6.0.1   | |
+| Samsung Galaxy S7 (G930FD)     | `samsung`/`heroltexx`       | 6.0.1   | |
 | SONY Xperia E (C1505)          | `Sony`/`C1505`              | 4.1.1   | |
 | SONY Xperia E4 Dual (E2115)    | `Sony`/`E2115`              | 4.4.4   | |
 | SONY Xperia S (LT26i)          | `Sony Ericsson`/`LT26i_1257-4921` | 4.1.2 | [97](https://github.com/commonsguy/cwac-cam2/issues/97) |

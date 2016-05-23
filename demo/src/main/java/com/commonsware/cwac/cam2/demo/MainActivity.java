@@ -26,12 +26,14 @@ import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 import com.commonsware.cwac.cam2.CameraActivity;
 import com.commonsware.cwac.cam2.Facing;
 import com.commonsware.cwac.cam2.FlashMode;
+import com.commonsware.cwac.cam2.VideoRecorderActivity;
 import com.commonsware.cwac.cam2.ZoomStyle;
 import com.commonsware.cwac.security.RuntimePermissionUtils;
 import com.squareup.moshi.JsonAdapter;
@@ -48,11 +50,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import de.greenrobot.event.EventBus;
 import static android.Manifest.permission.CAMERA;
+import static android.Manifest.permission.RECORD_AUDIO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity extends Activity {
   private static final String[] PERMS_ALL={
     CAMERA,
+    RECORD_AUDIO,
     WRITE_EXTERNAL_STORAGE
   };
   private static final FlashMode[] FLASH_MODES={
@@ -66,6 +70,7 @@ public class MainActivity extends Activity {
   private static final int RESULT_PERMS_ALL=REQUEST_PORTRAIT_RFC+4;
   private static final String STATE_PAGE="cwac_cam2_demo_page";
   private static final String STATE_TEST_ROOT="cwac_cam2_demo_test_root";
+  private static final String STATE_IS_VIDEO="cwac_cam2_demo_is_video";
   private ViewFlipper wizardBody;
   private Button previous;
   private Button next;
@@ -73,6 +78,7 @@ public class MainActivity extends Activity {
   private File testZip;
   private RuntimePermissionUtils utils;
   private File previewFrame;
+  private boolean isVideo=false;
 
   @TargetApi(23)
   @Override
@@ -110,6 +116,7 @@ public class MainActivity extends Activity {
     else {
       wizardBody.setDisplayedChild(savedInstanceState.getInt(STATE_PAGE, 0));
       testRoot=new File(savedInstanceState.getString(STATE_TEST_ROOT));
+      isVideo=savedInstanceState.getBoolean(STATE_IS_VIDEO, false);
     }
 
     testZip=new File(testRoot.getAbsolutePath()+".zip");
@@ -117,8 +124,9 @@ public class MainActivity extends Activity {
     if (!haveNecessaryPermissions() && utils.useRuntimePermissions()) {
       requestPermissions(PERMS_ALL, RESULT_PERMS_ALL);
     }
-
-    handlePage();
+    else {
+      handlePage();
+    }
   }
 
   @Override
@@ -163,6 +171,7 @@ public class MainActivity extends Activity {
     outState.putInt(STATE_PAGE, wizardBody.getDisplayedChild());
     outState.putString(STATE_TEST_ROOT,
       testRoot.getAbsolutePath());
+    outState.putBoolean(STATE_IS_VIDEO, isVideo);
   }
 
   @Override
@@ -174,19 +183,12 @@ public class MainActivity extends Activity {
         savePreviewFrame(new File(testRoot,
           "preview-portrait-rear.jpg"));
 
-        Runnable r=new Runnable() {
+        wizardBody.postDelayed(new Runnable() {
           @Override
           public void run() {
             capturePortraitFFC();
           }
-        };
-
-        if (resultCode==Activity.RESULT_CANCELED) {
-          wizardBody.postDelayed(r, 2000);
-        }
-        else {
-          r.run();
-        }
+        }, 2000);
 
         break;
 
@@ -202,19 +204,12 @@ public class MainActivity extends Activity {
         savePreviewFrame(new File(testRoot,
           "preview-landscape-rear.jpg"));
 
-        r=new Runnable() {
+        wizardBody.postDelayed(new Runnable() {
           @Override
           public void run() {
             captureLandscapeFFC();
           }
-        };
-
-        if (resultCode==Activity.RESULT_CANCELED) {
-          wizardBody.postDelayed(r, 2000);
-        }
-        else {
-          r.run();
-        }
+        }, 2000);
 
         break;
 
@@ -232,7 +227,10 @@ public class MainActivity extends Activity {
   public void onRequestPermissionsResult(int requestCode,
                                          String[] permissions,
                                          int[] grantResults) {
-    if (!haveNecessaryPermissions()) {
+    if (haveNecessaryPermissions()) {
+      handlePage();
+    }
+    else {
       Toast.makeText(this, R.string.msg_perms_missing,
         Toast.LENGTH_LONG).show();
       finish();
@@ -241,6 +239,7 @@ public class MainActivity extends Activity {
 
   private boolean haveNecessaryPermissions() {
     return(utils.hasPermission(CAMERA) &&
+      utils.hasPermission(RECORD_AUDIO) &&
       utils.hasPermission(WRITE_EXTERNAL_STORAGE));
   }
 
@@ -282,7 +281,23 @@ public class MainActivity extends Activity {
   }
 
   public void onEventMainThread(InitCaptureCompletedEvent event) {
-    Intent i=new CameraActivity.IntentBuilder(this)
+    Intent i;
+
+    isVideo=((CompoundButton)findViewById(R.id.is_video)).isChecked();
+
+    if (isVideo) {
+      i=new VideoRecorderActivity.IntentBuilder(this)
+        .facing(Facing.BACK)
+        .facingExactMatch()
+        .to(new File(testRoot, "portrait-rear.mp4"))
+        .updateMediaStore()
+        .durationLimit(10000)
+        .debug()
+        .flashModes(FLASH_MODES)
+        .build();
+    }
+    else {
+      i=new CameraActivity.IntentBuilder(this)
         .skipConfirm()
         .facing(Facing.BACK)
         .facingExactMatch()
@@ -293,6 +308,7 @@ public class MainActivity extends Activity {
         .flashModes(FLASH_MODES)
         .zoomStyle(ZoomStyle.SEEKBAR)
         .build();
+    }
 
     startActivityForResult(i, REQUEST_PORTRAIT_RFC);
   }
@@ -363,49 +379,94 @@ public class MainActivity extends Activity {
     previous.setEnabled(false);
     next.setEnabled(false);
 
-    Intent i=new CameraActivity.IntentBuilder(this)
-      .skipConfirm()
-      .facing(Facing.BACK)
-      .facingExactMatch()
-      .to(new File(testRoot, "landscape-rear.jpg"))
-      .updateMediaStore()
-      .flashModes(FLASH_MODES)
-      .zoomStyle(ZoomStyle.SEEKBAR)
-      .debugSavePreviewFrame()
-      .debug()
-      .build();
+    Intent i;
+
+    if (isVideo) {
+      i=new VideoRecorderActivity.IntentBuilder(this)
+        .facing(Facing.BACK)
+        .facingExactMatch()
+        .to(new File(testRoot, "landscape-rear.mp4"))
+        .updateMediaStore()
+        .flashModes(FLASH_MODES)
+        .debug()
+        .durationLimit(10000)
+        .build();
+    }
+    else {
+      i=new CameraActivity.IntentBuilder(this)
+        .skipConfirm()
+        .facing(Facing.BACK)
+        .facingExactMatch()
+        .to(new File(testRoot, "landscape-rear.jpg"))
+        .updateMediaStore()
+        .flashModes(FLASH_MODES)
+        .zoomStyle(ZoomStyle.SEEKBAR)
+        .debugSavePreviewFrame()
+        .debug()
+        .build();
+    }
 
     startActivityForResult(i, REQUEST_LANDSCAPE_RFC);
   }
 
   private void capturePortraitFFC() {
-    Intent i=new CameraActivity.IntentBuilder(MainActivity.this)
-      .skipConfirm()
-      .facing(Facing.FRONT)
-      .facingExactMatch()
-      .to(new File(testRoot, "portrait-front.jpg"))
-      .flashModes(FLASH_MODES)
-      .zoomStyle(ZoomStyle.SEEKBAR)
-      .debug()
-      .debugSavePreviewFrame()
-      .updateMediaStore()
-      .build();
+    Intent i;
+
+    if (isVideo) {
+      i=new VideoRecorderActivity.IntentBuilder(MainActivity.this)
+        .facing(Facing.FRONT)
+        .facingExactMatch()
+        .to(new File(testRoot, "portrait-front.mp4"))
+        .flashModes(FLASH_MODES)
+        .debug()
+        .durationLimit(10000)
+        .updateMediaStore()
+        .build();
+    }
+    else {
+      i=new CameraActivity.IntentBuilder(MainActivity.this)
+        .skipConfirm()
+        .facing(Facing.FRONT)
+        .facingExactMatch()
+        .to(new File(testRoot, "portrait-front.jpg"))
+        .flashModes(FLASH_MODES)
+        .zoomStyle(ZoomStyle.SEEKBAR)
+        .debug()
+        .debugSavePreviewFrame()
+        .updateMediaStore()
+        .build();
+    }
 
     startActivityForResult(i, REQUEST_PORTRAIT_FFC);
   }
 
   private void captureLandscapeFFC() {
-    Intent i=new CameraActivity.IntentBuilder(MainActivity.this)
-      .skipConfirm()
-      .facing(Facing.FRONT)
-      .facingExactMatch()
-      .to(new File(testRoot, "landscape-front.jpg"))
-      .updateMediaStore()
-      .flashModes(FLASH_MODES)
-      .zoomStyle(ZoomStyle.SEEKBAR)
-      .debugSavePreviewFrame()
-      .debug()
-      .build();
+    Intent i;
+
+    if (isVideo) {
+      i=new VideoRecorderActivity.IntentBuilder(MainActivity.this)
+        .facing(Facing.FRONT)
+        .facingExactMatch()
+        .to(new File(testRoot, "landscape-front.mp4"))
+        .updateMediaStore()
+        .flashModes(FLASH_MODES)
+        .durationLimit(10000)
+        .debug()
+        .build();
+    }
+    else {
+      i=new CameraActivity.IntentBuilder(MainActivity.this)
+        .skipConfirm()
+        .facing(Facing.FRONT)
+        .facingExactMatch()
+        .to(new File(testRoot, "landscape-front.jpg"))
+        .updateMediaStore()
+        .flashModes(FLASH_MODES)
+        .zoomStyle(ZoomStyle.SEEKBAR)
+        .debugSavePreviewFrame()
+        .debug()
+        .build();
+    }
 
     startActivityForResult(i, REQUEST_LANDSCAPE_FFC);
   }

@@ -116,14 +116,16 @@ public class SizeAndFormatPlugin implements CameraPlugin {
                                   int cameraId,
                                   VideoTransaction xact,
                                   MediaRecorder recorder) {
+      int highProfile=getHigh();
+
       boolean canGoHigh=CamcorderProfile.hasProfile(cameraId,
-        CamcorderProfile.QUALITY_HIGH);
+        highProfile);
       boolean canGoLow=CamcorderProfile.hasProfile(cameraId,
         CamcorderProfile.QUALITY_LOW);
 
       if (canGoHigh && (xact.getQuality()==1 || !canGoLow)) {
         recorder.setProfile(CamcorderProfile.get(cameraId,
-          CamcorderProfile.QUALITY_HIGH));
+          highProfile));
       }
       else if (canGoLow) {
         recorder.setProfile(CamcorderProfile.get(cameraId,
@@ -133,6 +135,15 @@ public class SizeAndFormatPlugin implements CameraPlugin {
         throw new IllegalStateException(
           "cannot find valid CamcorderProfile");
       }
+    }
+
+    private int getHigh() {
+      if ("LGE".equals(Build.MANUFACTURER) &&
+        "g3_tmo_us".equals(Build.PRODUCT)) {
+        return(CamcorderProfile.QUALITY_480P);
+      }
+
+      return(CamcorderProfile.QUALITY_HIGH);
     }
   }
 
